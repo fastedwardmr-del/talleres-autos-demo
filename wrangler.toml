@@ -1,0 +1,23 @@
+name = "api-tallerpro-demo"
+main = "backend/cloud/worker.js"
+compatibility_date = "2026-09-01"
+account_id = "4a74d430413e711ae109e7c9a5955f6d"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://talleres-autos.edylaser3d.com,https://talleres-autos-demo.pages.dev,http://localhost:4173,http://localhost:4174,http://127.0.0.1:4174"
+PLATE_RECOGNIZER_MMC = "false"
+VEHICLE_LOOKUP_REQUIRES_DOCUMENT = "false"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tallerpro-demo-db"
+database_id = "1c8bb5a9-3cad-4d9c-8c6a-32a91ab3d5b1"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "tallerpro-demo-files"
+
+[observability]
+enabled = false

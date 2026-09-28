@@ -1,0 +1,26 @@
+{
+  "repository": "https://github.com/gor3a/vehicle-makes-models",
+  "commit": "b4965631140fa82404359167621274601da69a5b",
+  "sha256": "fd3e83550da158bf02d2b6e443392cd30af12a331fbca2e501050e409593857d",
+  "license": "ODbL-1.0",
+  "importedAt": "2026-09-19T05:18:08.322Z",
+  "counts": {
+    "vehicle_catalog_sources": 1,
+    "vehicle_makes": 164,
+    "vehicle_models": 2616,
+    "vehicle_generations": 6839,
+    "vehicle_engines": 30046,
+    "vehicle_model_years": 24637
+  },
+  "duplicates": {
+    "vehicle_models": 5,
+    "vehicle_generations": 330,
+    "vehicle_engines": 344
+  },
+  "yearMin": 1909,
+  "yearMax": 2026,
+  "sourceBytes": 59547648,
+  "sqlBytes": 27830440,
+  "openRanges": 967,
+  "downloadBytes": 1757433
+}

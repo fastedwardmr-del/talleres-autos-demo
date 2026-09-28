@@ -1,0 +1,9 @@
+import qrcode from '../vendor/qrcode.js';
+import jsQR from '../vendor/jsqr.js';
+import {runtime} from '../runtime-config.js';
+export function qrPayload(vehicleId,origin=runtime.dataMode==='api'?globalThis.location?.origin:''){if(!/^[a-zA-Z0-9_-]{1,100}$/.test(vehicleId))throw new Error('Identificador de vehículo inválido.');return origin?`${origin}/#/vehicles/${vehicleId}`:`tallerpro:vehicle:${vehicleId}`;}
+export function parseVehicleQr(raw,origin=globalThis.location?.origin){const text=String(raw).trim();let match=/^tallerpro:vehicle:([a-zA-Z0-9_-]{1,100})$/.exec(text);if(!match&&origin){try{const url=new URL(text);if(url.origin===origin&&url.pathname==='/'&&!url.search)match=/^#\/vehicles\/([a-zA-Z0-9_-]{1,100})$/.exec(url.hash);}catch{}}if(!match)throw new Error('Este código no corresponde a un vehículo de TallerPro.');return match[1];}
+export function qrMatrix(vehicleId){const qr=qrcode(0,'M');qr.addData(qrPayload(vehicleId));qr.make();return qr;}
+export function qrSvg(vehicleId){return qrMatrix(vehicleId).createSvgTag({cellSize:6,margin:24,scalable:true});}
+export function decodeQrPixels(data,width,height){const result=jsQR(data,width,height,{inversionAttempts:'attemptBoth'});if(!result)throw new Error('No se encontró un QR legible. Acércalo o selecciona otra imagen.');return parseVehicleQr(result.data);}
+export async function readVehicleQr(image){const canvas=document.createElement('canvas');const scale=Math.min(1,1600/(image.videoWidth||image.naturalWidth||image.width));canvas.width=(image.videoWidth||image.naturalWidth||image.width)*scale;canvas.height=(image.videoHeight||image.naturalHeight||image.height)*scale;const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(image,0,0,canvas.width,canvas.height);const pixels=context.getImageData(0,0,canvas.width,canvas.height);return decodeQrPixels(pixels.data,canvas.width,canvas.height);}

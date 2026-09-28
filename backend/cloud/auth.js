@@ -1,0 +1,14 @@
+import {fail} from './validation.js';
+const encoder=new TextEncoder();
+const base64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
+export async function sign(value,secret){const key=await crypto.subtle.importKey('raw',encoder.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);return base64(await crypto.subtle.sign('HMAC',key,encoder.encode(value)));}
+async function same(a,b){return await sign(String(a),'comparison')===await sign(String(b),'comparison');}
+export async function login(request,env,code){if(!env.DEMO_ACCESS_CODE||!env.SESSION_SECRET)fail('El acceso DEMO aún no está configurado.','UNAVAILABLE',503);const ip=request.headers.get('CF-Connecting-IP')||'local';const key=await sign(ip,env.SESSION_SECRET),now=Math.floor(Date.now()/1000);
+ await env.DB.prepare('INSERT INTO auth_attempts(key,count,expires) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN expires<? THEN 1 ELSE count+1 END,expires=CASE WHEN expires<? THEN excluded.expires ELSE expires END').bind(key,now+600,now,now).run();
+ const limit=await env.DB.prepare('SELECT count FROM auth_attempts WHERE key=?').bind(key).first();if(limit.count>20)fail('Demasiados intentos. Espera diez minutos.','RATE_LIMIT',429);
+ if(typeof code!=='string'||code.length>200||!await same(code,env.DEMO_ACCESS_CODE))fail('Código de acceso incorrecto.','UNAUTHORIZED',401);
+ const payload=base64(encoder.encode(JSON.stringify({company_id:'demo',role:'DEMO',exp:now+8*3600})));return {token:payload+'.'+await sign(payload,env.SESSION_SECRET),expiresAt:(now+8*3600)*1000,company_id:'demo'};
+}
+export async function authenticate(request,env){const token=request.headers.get('Authorization')?.replace(/^Bearer /,'')||'',parts=token.split('.');if(parts.length!==2||!env.SESSION_SECRET||!await same(parts[1],await sign(parts[0],env.SESSION_SECRET)))fail('Ingresa el código para abrir la demostración.','UNAUTHORIZED',401);let data;try{data=JSON.parse(atob(parts[0].replaceAll('-','+').replaceAll('_','/')));}catch{fail('Sesión inválida.','UNAUTHORIZED',401);}if(data.exp<Date.now()/1000||data.company_id!=='demo'||data.role!=='DEMO')fail('La sesión expiró. Ingresa de nuevo.','UNAUTHORIZED',401);return data;}
+export async function fileUrl(base,file,company,secret){const exp=Math.floor(Date.now()/1000)+3600;const token=await sign(`${company}:${file}:${exp}`,secret);return `${base}/api/files/${file}?company=${company}&exp=${exp}&sig=${token}`;}
+export async function authenticateFile(url,env){const company=url.searchParams.get('company'),exp=Number(url.searchParams.get('exp')),id=url.pathname.split('/').at(-1);if(company!=='demo'||!exp||exp<Date.now()/1000||exp>Date.now()/1000+3700||!env.SESSION_SECRET||!await same(url.searchParams.get('sig'),await sign(`${company}:${id}:${exp}`,env.SESSION_SECRET)))fail('Enlace de foto expirado. Actualiza la ficha.','UNAUTHORIZED',401);return company;}
